@@ -59,3 +59,16 @@ All params can be found under `github.com/mono83/slf/params` package. For more c
 * `wd.StringParam(name, value string)` - returns string param
 * `wd.NameParam(value string)` - returns string param with name `name`
 * `wd.FloatParam(name string, value float64)` - returns float param
+
+## Useful stuff
+
+### Log to metrics
+
+`github.com/mono83/slf/health` package contains func `StartLogToMetrics`, which provides simple interface to
+count logging events without loosing them 
+
+Usecase:
+
+```go
+StartLogToMetrics(wd.New("", "log." /*metrics prefix*/).WithParams(util.HostParam()))
+```
