@@ -26,6 +26,7 @@ lint: ## Code linting
 
 deps: ## Download required dependencies
 	go get github.com/stretchr/testify/assert
+	go get github.com/mono83/udpwriter
 
 travis: deps vet test
 
