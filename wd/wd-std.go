@@ -24,6 +24,10 @@ func IntParam(name string, value int) slf.Param {
 
 // ErrParam returns Param for errors with key "err"
 func ErrParam(err error) slf.Param {
+	if err == nil {
+		return params.Nil{Key: "err"}
+	}
+
 	return params.Error{Key: "err", Value: err}
 }
 

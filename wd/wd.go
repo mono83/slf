@@ -17,7 +17,16 @@ type Watchdog interface {
 
 // New builds and returns new watchdog
 func New(name, metricsPrefix string) Watchdog {
-	return &watchdog{name: name, prefix: metricsPrefix, pipe: stdDispatcher.Receive}
+	return Custom(name, metricsPrefix, stdDispatcher)
+}
+
+// Custom creates and returns watchdog with custom events receivers pipeh
+func Custom(name, metricsPrefix string, target slf.Receiver) Watchdog {
+	return &watchdog{
+		name:   name,
+		prefix: metricsPrefix,
+		pipe:   target.Receive,
+	}
 }
 
 type watchdog struct {
