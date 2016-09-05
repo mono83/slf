@@ -1,0 +1,1 @@
+`log` package contains drop-in replacement for default Go logging subsystem
