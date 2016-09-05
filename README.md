@@ -72,3 +72,26 @@ Usecase:
 ```go
 StartLogToMetrics(wd.New("", "log." /*metrics prefix*/).WithParams(util.HostParam()))
 ```
+
+### Collect Go application health
+
+`github.com/mono83/slf/health.StartHealthMonitor` starts health monitoring goroutine, that will automatically collect various memory and GC information every second and send it as gauge
+
+Usecase:
+
+```go
+StartHealthMonitor(wd.New("", "app." /*metrics prefix*/).WithParams(util.HostParam()))
+```
+
+Metrics taken:
+
+* `health.gcs` - GCs count
+* `health.goroutines` - amount of active goroutines
+* `health.sys.malloc`
+* `health.sys.free`
+* `health.heap.alloc`
+* `health.heap.inuse`
+* `health.heap.sys`
+* `health.heap.objects` - count of objects in heap
+* `health.heap.nextgc` - next GC threshold in bytes
+* `health.uptime` - uptime in seconds
