@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// Timer is interface to metris timer
+// Timer is interface to metrics timer
 type Timer interface {
-	// Done stops timer and retuns elapsed time
+	// Done stops timer and returns elapsed time
 	// If timer was already stopped, just returns elapsed time
 	Done() time.Duration
 
