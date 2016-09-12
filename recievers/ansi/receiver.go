@@ -12,24 +12,17 @@ import (
 
 var placeholdersRegex = regexp.MustCompile(":[0-9a-zA-Z\\-_]+")
 
-func ansi256(c int) func(string) string {
-	sc := fmt.Sprintf("%d", c)
-	return func(s string) string {
-		return "\033[38;5;" + sc + "m" + s + "\033[0m"
-	}
-}
-
 // Palette
 var (
-	noColor          = func(v string) string { return v }
-	paletteTime      = ansi256(238)
-	paletteInfo      = ansi256(81)
-	paletteWarn      = ansi256(226)
-	paletteError     = ansi256(196)
-	paletteTagInfo   = ansi256(37)
-	paletteTagError  = ansi256(166)
-	paletteTagCrit   = ansi256(196)
-	paletteTagMarker = ansi256(91)
+	paletteTime      = makeColor(238, 238)
+	paletteInfo      = makeColor(77, 87)
+	paletteWarn      = makeColor(226, 208)
+	paletteError     = makeColor(202, 196)
+	paletteCrit      = makeColor(124, 15)
+	paletteTagInfo   = makeColor(37, 37)
+	paletteTagError  = makeColor(166, 166)
+	paletteTagCrit   = makeColor(196, 196)
+	paletteTagMarker = makeColor(91, 91)
 )
 
 // New builds new stdout receiver with 256 ANSI colors support
@@ -65,20 +58,7 @@ func (a *ansiPrinter) Receive(e slf.Event) {
 	}
 }
 
-func (a ansiPrinter) sel(colorFunc func(string) string) func(string) string {
-	if a.colors {
-		return colorFunc
-	}
-
-	return noColor
-}
-
-func (a *ansiPrinter) print(e slf.Event) {
-	if !e.IsLog() {
-		return
-	}
-
-	// Formatting time
+func (a *ansiPrinter) timeRef(e slf.Event) string {
 	var st string
 	if delta := e.Time.Sub(a.previousShown); delta < time.Second {
 		st = fmt.Sprintf("+ %.6fs", e.Time.Sub(a.previous).Seconds())
@@ -87,34 +67,46 @@ func (a *ansiPrinter) print(e slf.Event) {
 		a.previousShown = e.Time
 	}
 
+	return st
+}
+
+func (a *ansiPrinter) print(e slf.Event) {
+	if !e.IsLog() {
+		return
+	}
+
 	// Preparing tag
 	var tag string
-	var tagFunc = noColor
-	var msgFunc = noColor
+	var tagFunc, msgFunc color
 	switch e.Type {
+	case slf.TypeTrace:
+		tag = " ┊ "
+		tagFunc = paletteTime
+		msgFunc = paletteTime
 	case slf.TypeDebug:
-		tag = " ▪ "
+		tag = " ┇ "
 		tagFunc = paletteTime
 		msgFunc = paletteTime
 	case slf.TypeInfo:
-		tag = " ▪ "
+		tag = " ┃ "
 		tagFunc = paletteTagInfo
 		msgFunc = paletteInfo
 	case slf.TypeWarning:
-		tag = "▪▪▪"
+		tag = " ┃ "
 		tagFunc = paletteTagError
 		msgFunc = paletteWarn
 	case slf.TypeError:
-		tag = " ✗ "
+		tag = " ┣ "
 		tagFunc = paletteTagError
 		msgFunc = paletteError
-	case slf.TypeAlert, slf.TypeEmergency:
-		tag = "✗✗✗"
+	case slf.TypeAlert:
+		tag = " ◈ "
 		tagFunc = paletteTagCrit
-		msgFunc = paletteError
-	default:
-		tag = "   "
-		msgFunc = paletteTime
+		msgFunc = paletteCrit
+	case slf.TypeEmergency:
+		tag = " ◉ "
+		tagFunc = paletteTagCrit
+		msgFunc = paletteCrit
 	}
 
 	// Replacing placeholders
@@ -129,7 +121,10 @@ func (a *ansiPrinter) print(e slf.Event) {
 		text = placeholdersRegex.ReplaceAllStringFunc(text, func(x string) string {
 			key := x[1:]
 			if v, ok := mp[key]; ok {
-				return fmt.Sprintf("[%v]", v.GetRaw())
+				if ev, ok := v.GetRaw().(error); ok {
+					return msgFunc.formatErr(a.colors, ev)
+				}
+				return msgFunc.formatVar(a.colors, v.GetRaw())
 			}
 			return "<!" + x + ">"
 		})
@@ -142,16 +137,21 @@ func (a *ansiPrinter) print(e slf.Event) {
 
 	marker := ""
 	if a.showMarker {
-		marker = a.sel(paletteTagMarker)(e.Marker) + " "
+		marker = paletteTagMarker.format(a.colors, e.Marker) + " "
 	}
 
+	stop := ""
+	if a.colors {
+		stop = ansiStop
+	}
 	fmt.Fprintf(
 		a.to,
-		"%s %s %s%s\n",
-		a.sel(paletteTime)(st),
-		a.sel(tagFunc)(tag),
+		"%s %s %s%s%s\n",
+		paletteTime.format(a.colors, a.timeRef(e)),
+		tagFunc.format(a.colors, tag),
 		marker,
-		a.sel(msgFunc)(text),
+		msgFunc.format(a.colors, text),
+		stop,
 	)
 	a.previous = e.Time
 }
