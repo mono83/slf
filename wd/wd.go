@@ -27,11 +27,11 @@ func NewLogger(name string) Watchdog {
 }
 
 // NewStatsReporter builds and returns new watchdog, supposed to be used as stats reporter
-func NewStatsReporter(metricsPrefix string) {
+func NewStatsReporter(metricsPrefix string) Watchdog {
 	return New("", metricsPrefix)
 }
 
-// Custom creates and returns watchdog with custom events receivers pipeh
+// Custom creates and returns watchdog with custom events receivers pipe
 func Custom(name, metricsPrefix string, target slf.Receiver) Watchdog {
 	return &watchdog{
 		name:   name,
