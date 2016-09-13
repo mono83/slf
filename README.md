@@ -70,7 +70,7 @@ count logging events without loosing them
 Usecase:
 
 ```go
-StartLogToMetrics(wd.New("", "log." /*metrics prefix*/).WithParams(util.HostParam()))
+StartLogToMetrics(wd.New("", "log." /*metrics prefix*/).WithParams(rays.Host))
 ```
 
 ### Collect Go application health
@@ -80,7 +80,7 @@ StartLogToMetrics(wd.New("", "log." /*metrics prefix*/).WithParams(util.HostPara
 Usecase:
 
 ```go
-StartHealthMonitor(wd.New("", "app." /*metrics prefix*/).WithParams(util.HostParam()))
+StartHealthMonitor(wd.New("", "app." /*metrics prefix*/).WithParams(rays.Host))
 ```
 
 Metrics taken:
