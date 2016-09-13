@@ -11,13 +11,24 @@ type Watchdog interface {
 	slf.StatsReporter
 
 	// WithParams returns copy of watchdog with pre-setted params
-	// Useful for contex-based logging
+	// Useful for context-based logging
 	WithParams(...slf.Param) Watchdog
 }
 
 // New builds and returns new watchdog
 func New(name, metricsPrefix string) Watchdog {
 	return Custom(name, metricsPrefix, stdDispatcher)
+}
+
+// NewLogger builds and returns new watchdog, supposed to be used as logger
+// i.e. without metrics prefix
+func NewLogger(name string) Watchdog {
+	return New(name, "")
+}
+
+// NewStatsReporter builds and returns new watchdog, supposed to be used as stats reporter
+func NewStatsReporter(metricsPrefix string) {
+	return New("", metricsPrefix)
 }
 
 // Custom creates and returns watchdog with custom events receivers pipeh
