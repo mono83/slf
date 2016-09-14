@@ -6,4 +6,6 @@ type Param interface {
 	GetKey() string
 	// GetRaw returns raw value
 	GetRaw() interface{}
+	// String returns string representation of param value
+	String() string
 }
