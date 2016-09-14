@@ -91,7 +91,7 @@ func (w watchdog) UpdateGauge(name string, value int64, p ...slf.Param) {
 }
 
 func (w watchdog) RecordTimer(name string, d time.Duration, p ...slf.Param) {
-	w.pipe(newMetrics(slf.TypeGauge, w.name, w.prefix+name, int64(d), w.join(p)))
+	w.pipe(newMetrics(slf.TypeDuration, w.name, w.prefix+name, int64(d), w.join(p)))
 }
 
 func (w watchdog) Timer(name string, p ...slf.Param) slf.Timer {
