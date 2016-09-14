@@ -1,4 +1,4 @@
-package slf
+package recievers
 
 import (
 	"github.com/mono83/slf"
@@ -32,36 +32,40 @@ func NewMetricsBuffer(flushInterval time.Duration, flushTo func([]slf.Event)) sl
 		target:   flushTo,
 	}
 
-	go mb.flush()
+	go mb.flushLoop()
 	return mb
 }
 
-func (m *metricsBuffer) flush() {
+func (m *metricsBuffer) flushLoop() {
 	for {
 		time.Sleep(m.interval)
+		m.Flush()
+	}
+}
 
-		// Take lock
-		m.m.Lock()
-		// Copy durations to local variable
-		lineBuffer := m.durations
-		m.durations = nil
-		// Copy counters to local variable
-		localCounters := m.counters
-		m.counters = map[string]slf.Event{}
-		// Copy gauges values under lock - they are persistent
-		for _, v := range m.gauges {
-			lineBuffer = append(lineBuffer, v)
-		}
-		// Release lock
-		m.m.Unlock()
-		// Copy counters to local values - without lock, from local variable
-		for _, v := range localCounters {
-			lineBuffer = append(lineBuffer, v)
-		}
+// Flush clears buffers and sends data to provided func
+func (m *metricsBuffer) Flush() {
+	// Take lock
+	m.m.Lock()
+	// Copy durations to local variable
+	lineBuffer := m.durations
+	m.durations = nil
+	// Copy counters to local variable
+	localCounters := m.counters
+	m.counters = map[string]slf.Event{}
+	// Copy gauges values under lock - they are persistent
+	for _, v := range m.gauges {
+		lineBuffer = append(lineBuffer, v)
+	}
+	// Release lock
+	m.m.Unlock()
+	// Copy counters to local values - without lock, from local variable
+	for _, v := range localCounters {
+		lineBuffer = append(lineBuffer, v)
+	}
 
-		if m.target != nil {
-			m.target(lineBuffer)
-		}
+	if m.target != nil {
+		m.target(lineBuffer)
 	}
 }
 

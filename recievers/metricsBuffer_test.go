@@ -1,28 +1,22 @@
-package slf
+package recievers
 
 import (
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/wd"
 	"github.com/stretchr/testify/assert"
-	"sync"
 	"testing"
 	"time"
 )
 
 func TestNewMetricsBuffer(t *testing.T) {
 	assert := assert.New(t)
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
 	mp := map[string]slf.Event{}
 
-	before := time.Now()
-	mb := NewMetricsBuffer(100*time.Millisecond, func(es []slf.Event) {
+	mb := NewMetricsBuffer(time.Hour, func(es []slf.Event) {
 		// Copy to map to ease assertions
 		for _, v := range es {
 			mp[getHashKey(v)] = v
 		}
-		wg.Done()
 	})
 
 	// Sending metrics
@@ -42,9 +36,9 @@ func TestNewMetricsBuffer(t *testing.T) {
 	w.RecordTimer("delta", time.Second)
 	w.RecordTimer("delta2", time.Microsecond*15)
 
-	// Waiting
-	wg.Wait()
-	assert.True(time.Now().Sub(before).Seconds() >= 0.1)
+	// Flushing
+	mbs, _ := mb.(*metricsBuffer)
+	mbs.Flush()
 
 	assert.Equal(int64(100500), mp["foo.gauge"].I64)
 	assert.Equal(int64(2), mp["foo.gauge2"].I64)
