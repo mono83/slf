@@ -48,3 +48,12 @@ func TestPid(t *testing.T) {
 	assert.Equal("pid", PID.GetKey())
 	assert.NotEmpty(PID.Value())
 }
+
+func TestSupervisorIndex(t *testing.T) {
+	assert := assert.New(t)
+
+	_, ok := interface{}(SupervisorIndex).(slf.Param)
+	assert.True(ok, "SupervisorIndex must implement slf.Param")
+	assert.Equal("supervisorIndex", SupervisorIndex.GetKey())
+	assert.Equal(-1, SupervisorIndex.GetRaw())
+}
