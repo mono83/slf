@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/filters"
+	"github.com/mono83/slf/rays"
 	"github.com/mono83/udpwriter"
 	"io"
 	"time"
@@ -69,6 +70,7 @@ func (l lsr) Receive(p slf.Event) {
 	pkt["hmessage"] = slf.ReplacePlaceholders(p.Content, p.Params, false)
 	pkt["event-time"] = p.Time.Format(time.RFC3339)
 	pkt["object"] = p.Marker
+	pkt["script-id"] = rays.InstanceID.String()
 
 	bts, _ := json.Marshal(pkt)
 	l.target.Write(bts)
