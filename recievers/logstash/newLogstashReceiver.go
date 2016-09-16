@@ -56,12 +56,17 @@ func (l lsr) Receive(p slf.Event) {
 
 	if len(p.Params) > 0 {
 		for _, param := range p.Params {
-			pkt[param.GetKey()] = param.GetRaw()
+			value := param.GetRaw()
+			if e, ok := value.(error); ok && e != nil {
+				value = e.Error()
+			}
+			pkt[param.GetKey()] = value
 		}
 	}
 
 	pkt["log-level"] = p.StringType()
 	pkt["message"] = p.Content
+	pkt["hmessage"] = slf.ReplacePlaceholders(p.Content, p.Params, false)
 	pkt["event-time"] = p.Time.Format(time.RFC3339)
 	pkt["object"] = p.Marker
 

@@ -5,12 +5,9 @@ import (
 	"github.com/mono83/slf"
 	"io"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 )
-
-var placeholdersRegex = regexp.MustCompile(":[0-9a-zA-Z\\-_]+")
 
 // Palette
 var (
@@ -110,25 +107,7 @@ func (a *ansiPrinter) print(e slf.Event) {
 	}
 
 	// Replacing placeholders
-	text := e.Content
-	if len(e.Params) > 0 {
-		// Building map
-		mp := make(map[string]slf.Param, len(e.Params))
-		for _, p := range e.Params {
-			mp[p.GetKey()] = p
-		}
-
-		text = placeholdersRegex.ReplaceAllStringFunc(text, func(x string) string {
-			key := x[1:]
-			if v, ok := mp[key]; ok {
-				if ev, ok := v.GetRaw().(error); ok {
-					return msgFunc.formatErr(a.colors, ev)
-				}
-				return msgFunc.formatVar(a.colors, v.GetRaw())
-			}
-			return "<!" + x + ">"
-		})
-	}
+	text := getText(e, a.colors, msgFunc)
 
 	// Replacing special chars
 	text = strings.Replace(text, "\t", "\\t", -1)
@@ -154,4 +133,32 @@ func (a *ansiPrinter) print(e slf.Event) {
 		stop,
 	)
 	a.previous = e.Time
+}
+
+func getText(e slf.Event, colors bool, msgFunc color) string {
+	text := e.Content
+	if len(e.Params) > 0 {
+		if colors {
+			// Building map
+			mp := make(map[string]slf.Param, len(e.Params))
+			for _, p := range e.Params {
+				mp[p.GetKey()] = p
+			}
+
+			text = slf.PlaceholdersRegex.ReplaceAllStringFunc(text, func(x string) string {
+				key := x[1:]
+				if v, ok := mp[key]; ok {
+					if ev, ok := v.GetRaw().(error); ok {
+						return msgFunc.formatErr(colors, ev)
+					}
+					return msgFunc.formatVar(colors, v.GetRaw())
+				}
+				return "<!" + x + ">"
+			})
+		} else {
+			text = slf.ReplacePlaceholders(text, e.Params, true)
+		}
+	}
+
+	return text
 }
