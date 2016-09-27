@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/filters"
-	"github.com/mono83/slf/rays"
 	"github.com/mono83/udpwriter"
 	"io"
 	"time"
@@ -13,8 +12,10 @@ import (
 
 // Config holds information for filtered receiver
 type Config struct {
-	Address  string `json:"address" yaml:"address"`
-	MinLevel string `json:"level" yaml:"level"`
+	Address         string   `json:"address" yaml:"address"`
+	MinLevel        string   `json:"level" yaml:"level"`
+	ParamsWhiteList []string `json:"paramsWhiteList" yaml:"paramsWhiteList"`
+	ParamsBlackList []string `json:"paramsBlackList" yaml:"paramsBlackList"`
 }
 
 // NewFiltered return new logstash events receiver with
@@ -26,9 +27,14 @@ func NewFiltered(c Config) (slf.Receiver, error) {
 		return nil, fmt.Errorf("Unknown level %s", c.MinLevel)
 	}
 
-	out, err := New(c.Address)
+	out, err := buildReceiverForAddr(c.Address)
 	if err != nil {
 		return nil, err
+	}
+	if len(c.ParamsWhiteList) > 0 {
+		out.filter = slf.NewWhiteListParamsFilter(c.ParamsWhiteList)
+	} else {
+		out.filter = slf.NewBlackListParamsFilter(c.ParamsBlackList)
 	}
 
 	return filters.MinLogLevel(level, out), nil
@@ -36,19 +42,24 @@ func NewFiltered(c Config) (slf.Receiver, error) {
 
 // New builds and returns new logstash events receiver
 func New(addr string) (slf.Receiver, error) {
+	return buildReceiverForAddr(addr)
+}
+
+func buildReceiverForAddr(addr string) (*logstashLogReceiver, error) {
 	uw, err := udpwriter.NewS(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	return lsr{target: uw}, nil
+	return &logstashLogReceiver{target: uw, filter: slf.NewBlackListParamsFilter(nil)}, nil
 }
 
-type lsr struct {
+type logstashLogReceiver struct {
 	target io.Writer
+	filter slf.ParamsFilter
 }
 
-func (l lsr) Receive(p slf.Event) {
+func (l logstashLogReceiver) Receive(p slf.Event) {
 	if !p.IsLog() {
 		return
 	}
@@ -56,7 +67,8 @@ func (l lsr) Receive(p slf.Event) {
 	pkt := map[string]interface{}{}
 
 	if len(p.Params) > 0 {
-		for _, param := range p.Params {
+		shownParams := l.filter(p.Params)
+		for _, param := range shownParams {
 			value := param.GetRaw()
 			if e, ok := value.(error); ok && e != nil {
 				value = e.Error()
@@ -65,12 +77,11 @@ func (l lsr) Receive(p slf.Event) {
 		}
 	}
 
-	pkt["log-level"] = p.StringType()
-	pkt["message"] = p.Content
-	pkt["hmessage"] = slf.ReplacePlaceholders(p.Content, p.Params, false)
-	pkt["event-time"] = p.Time.Format(time.RFC3339)
 	pkt["object"] = p.Marker
-	pkt["script-id"] = rays.InstanceID.String()
+	pkt["log-level"] = p.StringType()
+	pkt["pattern"] = p.Content
+	pkt["message"] = slf.ReplacePlaceholders(p.Content, p.Params, false)
+	pkt["event-time"] = p.Time.Format(time.RFC3339)
 
 	bts, _ := json.Marshal(pkt)
 	l.target.Write(bts)
