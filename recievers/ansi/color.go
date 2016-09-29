@@ -1,7 +1,6 @@
 package ansi
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -29,13 +28,12 @@ func (c color) format(colors bool, value string) string {
 	return "\033[38;5;" + c.fgColor + "m" + value
 }
 
-func (c color) formatVar(colors bool, value interface{}) string {
-	sv := fmt.Sprintf("%v", value)
+func (c color) formatVar(colors bool, value string) string {
 	if !colors || c.value == 0 {
-		return "[" + sv + "]"
+		return "[" + value + "]"
 	}
 
-	return "\033[38;5;" + c.varColor + "m" + sv + ansiStop + "\033[38;5;" + c.fgColor + "m"
+	return "\033[38;5;" + c.varColor + "m" + value + ansiStop + "\033[38;5;" + c.fgColor + "m"
 }
 
 func (c color) formatErr(colors bool, value error) string {

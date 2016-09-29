@@ -151,7 +151,7 @@ func getText(e slf.Event, colors bool, msgFunc color) string {
 					if ev, ok := v.GetRaw().(error); ok {
 						return msgFunc.formatErr(colors, ev)
 					}
-					return msgFunc.formatVar(colors, v.GetRaw())
+					return msgFunc.formatVar(colors, v.String())
 				}
 				return "<!" + x + ">"
 			})
