@@ -23,6 +23,22 @@ func TestCountParam(t *testing.T) {
 	assert.Equal(t, 3231, p.GetRaw())
 }
 
+func TestInt64Param(t *testing.T) {
+	p := Int64Param("foo", 500)
+
+	assert.IsType(t, params.Int64{}, p)
+	assert.Equal(t, "foo", p.GetKey())
+	assert.Equal(t, int64(500), p.GetRaw())
+}
+
+func TestID64Param(t *testing.T) {
+	p := ID64Param(324)
+
+	assert.IsType(t, params.Int64{}, p)
+	assert.Equal(t, "id", p.GetKey())
+	assert.Equal(t, int64(324), p.GetRaw())
+}
+
 func TestErrParam(t *testing.T) {
 	err := errors.New("Some text")
 	p := ErrParam(err)

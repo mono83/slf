@@ -22,6 +22,16 @@ func IntParam(name string, value int) slf.Param {
 	return params.Int{Key: name, Value: value}
 }
 
+// Int64Param return int64 Param
+func Int64Param(name string, value int64) slf.Param {
+	return params.Int64{Key: name, Value: value}
+}
+
+// ID64Param return int64 Param with key "id"
+func ID64Param(value int64) slf.Param {
+	return params.Int64{Key: "id", Value: value}
+}
+
 // ErrParam returns Param for errors with key "err"
 func ErrParam(err error) slf.Param {
 	if err == nil {
