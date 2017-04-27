@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 )
 
 // Palette
@@ -44,7 +43,6 @@ type ansiPrinter struct {
 	to                      io.Writer
 	colors, showMarker      bool
 	delay                   chan slf.Event
-	previous, previousShown time.Time
 }
 
 func (a *ansiPrinter) Receive(e slf.Event) {
@@ -56,15 +54,7 @@ func (a *ansiPrinter) Receive(e slf.Event) {
 }
 
 func (a *ansiPrinter) timeRef(e slf.Event) string {
-	var st string
-	if delta := e.Time.Sub(a.previousShown); delta < time.Second {
-		st = fmt.Sprintf("+ %.6fs", e.Time.Sub(a.previous).Seconds())
-	} else {
-		st = e.Time.Format("02 15:04:05")
-		a.previousShown = e.Time
-	}
-
-	return st
+	return e.Time.Format("02 15:04:05.000000")
 }
 
 func (a *ansiPrinter) print(e slf.Event) {
@@ -116,7 +106,7 @@ func (a *ansiPrinter) print(e slf.Event) {
 
 	marker := ""
 	if a.showMarker {
-		marker = paletteTagMarker.format(a.colors, e.Marker) + " "
+		marker = " " + paletteTagMarker.format(a.colors, "@" + e.Marker)
 	}
 
 	stop := ""
@@ -125,14 +115,13 @@ func (a *ansiPrinter) print(e slf.Event) {
 	}
 	fmt.Fprintf(
 		a.to,
-		"%s %s %s%s%s\n",
+		"%s%s%s%s%s\n",
 		paletteTime.format(a.colors, a.timeRef(e)),
 		tagFunc.format(a.colors, tag),
-		marker,
 		msgFunc.format(a.colors, text),
+		marker,
 		stop,
 	)
-	a.previous = e.Time
 }
 
 func getText(e slf.Event, colors bool, msgFunc color) string {
