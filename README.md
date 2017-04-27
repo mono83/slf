@@ -60,3 +60,16 @@ Raw params aren't most convenient things in the world, so `wd.` package contains
 |`wd.StringParam` | `string`, `string` | |
 |`wd.NameParam` | `string`, `strings` | Builds string param with key `name` |
 
+
+## `spf13/cobra` integration
+
+There is wrapper for `spf13/cobra`. Just invoke `slfcobra.Wrap` over your main command and CLI arguments and logging 
+will be added:
+
+```go
+import (
+        "github.com/mono83/slf/util/slfcobra"
+)
+
+var BookCmd = slfcobra.Wrap(&cobra.Command{...})
+```
