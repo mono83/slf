@@ -67,6 +67,7 @@ Raw params aren't most convenient things in the world, so `wd.` package contains
 |`wd.ErrParam` | `error` | Builds param containing Go `error`s with key `err` |
 |`wd.StringParam` | `string`, `string` | |
 |`wd.NameParam` | `string`, `strings` | Builds string param with key `name` |
+|`wd.DeltaParam` | `time.Duration` | Builds duration param with key `delta` |
 
 
 ## `spf13/cobra` integration
