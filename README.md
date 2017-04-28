@@ -28,13 +28,21 @@ a receiver. Most common is stdout receiver, which can be assigned right in your 
 
 import (
     "github.com/mono83/slf/wd"
-    "github.com/mono83/slf/recievers/ansi"
+    "github.com/mono83/slf/recievers/writer"
 )
 
 func main() {
         // Add ANSI standard output receiver 
-        wd.AddReceiver(ansi.New(true /*colors*/, true /*show marker*/, false /*async*/))
+        wd.AddReceiver(writer.Options{NoColor: false})
 }
+```
+
+To remove debug and trace information, filtering may be applied
+```go
+wd.AddReceiver(slf.Filter(
+                ansi.New(true /*colors*/, true /*show marker*/, false /*async*/),
+                writer.Options{NoColor: false},
+))
 ```
 
 ## More concision with placeholders

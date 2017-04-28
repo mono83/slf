@@ -2,7 +2,7 @@ package slfcobra
 
 import (
 	"github.com/mono83/slf"
-	"github.com/mono83/slf/recievers/ansi"
+	"github.com/mono83/slf/recievers/writer"
 	"github.com/mono83/slf/wd"
 	"github.com/spf13/cobra"
 )
@@ -39,16 +39,25 @@ func Wrap(cmd *cobra.Command) *cobra.Command {
 		nocolor, _ := cmd.Flags().GetBool("no-ansi")
 		// Enabling logger
 		if !quiet {
+			var predicate func(slf.Event) bool
 			if vv {
 				// Very verbose mode
-				wd.AddReceiver(slf.Filter(ansi.New(!nocolor, true, false), allLoggingPredicate))
+				predicate = allLoggingPredicate
 			} else if verbose {
 				// Info+ logging
-				wd.AddReceiver(slf.Filter(ansi.New(!nocolor, true, false), verboseLoggingPredicate))
+				predicate = verboseLoggingPredicate
 			} else {
 				// Error+ logging
-				wd.AddReceiver(slf.Filter(ansi.New(!nocolor, true, false), commonLoggingPredicate))
+				predicate = commonLoggingPredicate
 			}
+
+			wd.AddReceiver(slf.Filter(
+				writer.New(writer.Options{
+					NoColor: nocolor,
+					Marker:  true,
+				}),
+				predicate,
+			))
 		}
 	}
 
