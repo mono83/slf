@@ -118,7 +118,7 @@ func (p *printer) print(e slf.Event) {
 
 	marker := ""
 	if p.Marker {
-		marker = " " + paletteTagMarker.format(p.Marker, "@"+e.Marker)
+		marker = " " + paletteTagMarker.format(!p.NoColor, "@"+e.Marker)
 	}
 
 	stop := ""
