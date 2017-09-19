@@ -1,4 +1,4 @@
-package ansi
+package writer
 
 import (
 	"fmt"
@@ -21,14 +21,26 @@ var (
 	paletteTagMarker = makeColor(91, 91)
 )
 
-// New builds new stdout receiver with 256 ANSI colors support
-// This instance is deprecated, use `writer.New` instead
-func New(colors, showMarker, async bool) slf.Receiver {
-	a := new(ansiPrinter)
-	a.colors = colors
-	a.showMarker = showMarker
-	a.to = os.Stdout
-	if async {
+// Options contains configuration for writer receiver
+type Options struct {
+	Target     io.Writer // Output target, nil for os.Stdout
+	NoColor    bool      // Disable color output
+	Async      bool      // Async output
+	Marker     bool      // Output log marker
+	TimeFormat string    // Time output format, default is "02 15:04:05.000000"
+}
+
+// New builds new writer receiver with 256 ANSI colors support
+func New(o Options) slf.Receiver {
+	a := new(printer)
+	a.Options = o
+	if a.Target == nil {
+		a.Target = os.Stdout
+	}
+	if len(a.TimeFormat) == 0 {
+		a.TimeFormat = "02 15:04:05.000000"
+	}
+	if a.Async {
 		a.delay = make(chan slf.Event)
 		go func() {
 			for e := range a.delay {
@@ -40,25 +52,24 @@ func New(colors, showMarker, async bool) slf.Receiver {
 	return a
 }
 
-type ansiPrinter struct {
-	to                 io.Writer
-	colors, showMarker bool
-	delay              chan slf.Event
+type printer struct {
+	Options
+	delay chan slf.Event
 }
 
-func (a *ansiPrinter) Receive(e slf.Event) {
-	if a.delay == nil {
-		a.print(e)
+func (p *printer) Receive(e slf.Event) {
+	if p.Async {
+		p.delay <- e
 	} else {
-		a.delay <- e
+		p.print(e)
 	}
 }
 
-func (a *ansiPrinter) timeRef(e slf.Event) string {
-	return e.Time.Format("02 15:04:05.000000")
+func (p *printer) timeRef(e slf.Event) string {
+	return e.Time.Format(p.TimeFormat)
 }
 
-func (a *ansiPrinter) print(e slf.Event) {
+func (p *printer) print(e slf.Event) {
 	if !e.IsLog() {
 		return
 	}
@@ -98,7 +109,7 @@ func (a *ansiPrinter) print(e slf.Event) {
 	}
 
 	// Replacing placeholders
-	text := getText(e, a.colors, msgFunc)
+	text := getText(e, !p.NoColor, msgFunc)
 
 	// Replacing special chars
 	text = strings.Replace(text, "\t", "\\t", -1)
@@ -106,20 +117,20 @@ func (a *ansiPrinter) print(e slf.Event) {
 	text = strings.Replace(text, "\r", "\\r", -1)
 
 	marker := ""
-	if a.showMarker {
-		marker = " " + paletteTagMarker.format(a.colors, "@"+e.Marker)
+	if p.Marker {
+		marker = " " + paletteTagMarker.format(!p.NoColor, "@"+e.Marker)
 	}
 
 	stop := ""
-	if a.colors {
+	if p.Marker {
 		stop = ansiStop
 	}
 	fmt.Fprintf(
-		a.to,
+		p.Target,
 		"%s%s%s%s%s\n",
-		paletteTime.format(a.colors, a.timeRef(e)),
-		tagFunc.format(a.colors, tag),
-		msgFunc.format(a.colors, text),
+		paletteTime.format(!p.NoColor, p.timeRef(e)),
+		tagFunc.format(!p.NoColor, tag),
+		msgFunc.format(!p.NoColor, text),
 		marker,
 		stop,
 	)

@@ -3,6 +3,7 @@ package wd
 import (
 	"github.com/mono83/slf"
 	"github.com/mono83/slf/params"
+	"time"
 )
 
 var stdDispatcher = &slf.Dispatcher{}
@@ -59,4 +60,9 @@ func CountParam(value int) slf.Param {
 // FloatParam return Param for float values
 func FloatParam(name string, value float64) slf.Param {
 	return params.Float64{Key: name, Value: value}
+}
+
+// DeltaParam returns duration param with name "delta"
+func DeltaParam(elapsed time.Duration) slf.Param {
+	return params.Duration{Key: "delta", Value: elapsed}
 }

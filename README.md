@@ -3,95 +3,82 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/mono83/slf)](https://goreportcard.com/report/github.com/mono83/slf)
 [![GoDoc](https://godoc.org/github.com/mono83/slf?status.svg)](https://godoc.org/github.com/mono83/slf)
 
-## Usage
+## Brief
 
-In main file, configure general SLF logging behavior:
+SLF provides easy and convenient way to organize logging and metrics reporting inside your application.
 
 ```go
-package main
+import (
+    "github.com/mono83/slf/wd"
+)
+
+// Create logger with marker example
+log := wd.NewLogger("example")
+log.Info("Processing some staff")
+```
+
+Allowed logging levels are: `Trace`, `Debug`, `Info`, `Warning`, `Error`, `Alert`
+
+## Got logs but no output? Assign receivers!
+
+By default, SLF will ignore any received. To manage output or forwarding to external logging facilities just add
+a receiver. Most common is stdout receiver, which can be assigned right in your `func main()`
+
+```go
 
 import (
     "github.com/mono83/slf/wd"
-    "github.com/mono83/slf/recievers/ansi"
+    "github.com/mono83/slf/recievers/writer"
 )
 
 func main() {
-    // Initialize logger
-    wd.AddReceiver(ansi.New(true /*colors*/, true /*show marker*/, false /*async*/))
+        // Add ANSI standard output receiver 
+        wd.AddReceiver(writer.Options{NoColor: false})
 }
-
 ```
 
-Then, create new Watchdog instance and use logging
+To remove debug and trace information, filtering may be applied
+```go
+wd.AddReceiver(slf.Filter(
+                ansi.New(true /*colors*/, true /*show marker*/, false /*async*/),
+                writer.Options{NoColor: false},
+))
+```
+
+## More concision with placeholders
+
+SLF supports additional parameters, that can be applied to log. These parameters can be used as placeholders values and 
+some receiver can contain additional logic for it (for example, Logstash receiver can send placeholder values as separated
+columns):
+ 
+```go
+log.Info("Processing user :id", params.Int{Key: "id", Value: 300})
+```
+
+Raw params aren't most convenient things in the world, so `wd.` package contains some builders for frequent params:
+
+| Func | Args | Description |
+| ---- | ---- | ----------- |
+|`wd.IntParam` | `string`, `int` | |
+|`wd.Int64Param` | `string`, `int` | |
+|`wd.CountParam` | `int` | Builds integer param with key `count` |
+|`wd.ID64Param` | `int` | Builds 64-bit integer param with key `id` |
+|`wd.FloatParam` | `string`, `float64` | |
+|`wd.ErrParam` | `error` | Builds param containing Go `error`s with key `err` |
+|`wd.StringParam` | `string`, `string` | |
+|`wd.NameParam` | `string`, `strings` | Builds string param with key `name` |
+|`wd.DeltaParam` | `time.Duration` | Builds duration param with key `delta` |
+
+
+## `spf13/cobra` integration
+
+There is wrapper for `spf13/cobra`. Just invoke `slfcobra.Wrap` over your main command and CLI arguments and logging 
+will be added:
 
 ```go
+import (
+        "github.com/mono83/slf/util/slfcobra"
+)
 
-func AnyFunc() {
-    log := wd.New("myMarker" /*sender name (marker)*/, "go." /*metrics prefix*/)
-    
-    log.Info("Starting processing")
-}
-
+var BookCmd = slfcobra.Wrap(&cobra.Command{...})
 ```
-
-You can use placeholders 
-
-```go
-log.Info("Sending request to :url", wd.StringParam("url", url))
-log.Error("Received an error - :err", wd.ErrorParam(err))
-```
-
-## Params
-
-SLF uses *Params* (aka placeholders in logging context) to add context into SLF events
-
-1. In logging, params acts as placeholders and it's value injects into message string
-2. In special loggers, params can be also delivered as part of context - for example all of params are delivered to logstash server in logstash client (`github.com/mono83/slf/recievers/logstash.New`)
-3. In metrics params may act as context to, if client allows it (DogStatsD, for example, allows context delivery)
-
-All params are simple key-value pairs, where key is always `string`
-
-All params can be found under `github.com/mono83/slf/params` package. For more comfortable use, there are builder function in `github.com/mono83/slf/wd` package:
-
-* `wd.IntParam(name string, value int)` - returns integer param
-* `wd.CountParam(value int)` - return integer param with name `count`
-* `wd.ErrParam(err error)` - returns error param with name `err`
-* `wd.StringParam(name, value string)` - returns string param
-* `wd.NameParam(value string)` - returns string param with name `name`
-* `wd.FloatParam(name string, value float64)` - returns float param
-
-## Useful stuff
-
-### Log to metrics
-
-`github.com/mono83/slf/health` package contains func `StartLogToMetrics`, which provides simple interface to
-count logging events without loosing them 
-
-Usecase:
-
-```go
-StartLogToMetrics(wd.New("", "log." /*metrics prefix*/).WithParams(rays.Host))
-```
-
-### Collect Go application health
-
-`github.com/mono83/slf/health.StartHealthMonitor` starts health monitoring goroutine, that will automatically collect various memory and GC information every second and send it as gauge
-
-Usecase:
-
-```go
-StartHealthMonitor(wd.New("", "app." /*metrics prefix*/).WithParams(rays.Host))
-```
-
-Metrics taken:
-
-* `health.gcs` - GCs count
-* `health.goroutines` - amount of active goroutines
-* `health.sys.malloc`
-* `health.sys.free`
-* `health.heap.alloc`
-* `health.heap.inuse`
-* `health.heap.sys`
-* `health.heap.objects` - count of objects in heap
-* `health.heap.nextgc` - next GC threshold in bytes
-* `health.uptime` - uptime in seconds
